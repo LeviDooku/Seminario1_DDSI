@@ -34,6 +34,7 @@ class DBConfig:
     pooling: bool = True        #Pooling mantiene un grupo de conexiones, renta a true
 
     """
+    Propiedad odbc_convertir:
     Junta los atributos en una cadena con el formato oracle
     Ej. Cadena:
     DRIVER={Oracle in instantclient_21_13};DBQ=//oracle0.ugr.es:1521/practbd;UID=usuario;PWD=contraseña;Pooling=Yes
@@ -53,6 +54,7 @@ class DBConfig:
         return ";".join(parts)
 
 """
+Función from_env
 Carga la configuración de las variables de entorno
 IMPORTANTE: Cada uno tendrá que tener sus variables de entorno previamente configuradas
 
