@@ -19,7 +19,7 @@ Clase DBConfig:
 Agrupa todos los parámetros en un solo objeto
 """
 
-@dataclass(frozen=True)
+@dataclass(frozen=True)                                                                                                                                                             
 class DBConfig:
     """
     Contiene la configuración de conexión a Oracle vía ODBC.
