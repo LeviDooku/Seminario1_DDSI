@@ -52,6 +52,19 @@ class DBConfig:
         if self.pooling:
             parts.append("Pooling=Yes")
         return ";".join(parts)
+    
+    """
+    Función odbc_conn_str_safe
+    """
+    def odbc_conn_str_safe(self) -> str:
+        parts = [
+            f"DRIVER={{{self.driver}}}",
+            f"DBQ=//{self.host}:{self.port}/{self.service_name}",
+            f"UID={self.user}",
+        ]
+        if self.pooling:
+            parts.append("Pooling=Yes")
+        return ";".join(parts)
 
 """
 Función from_env
