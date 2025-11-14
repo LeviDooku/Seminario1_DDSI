@@ -1,5 +1,11 @@
 # db_connection
 
+"""
+Gestiona la conexión a la BD usando pyodbc
+
+https://github.com/mkleehammer/pyodbc/wiki
+"""
+
 from __future__ import annotations
 from db_config import DBConfig
 import pyodbc

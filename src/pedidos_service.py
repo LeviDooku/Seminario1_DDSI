@@ -11,7 +11,6 @@ import pyodbc
 
 SAVEPOINT_NAME = "sp_pedido_creado"
 
-
 #Excepciones específicas
 
 class PedidoError(RuntimeError):
@@ -37,7 +36,7 @@ class SinStockError(PedidoError):
 #Funciones 
 
 """
-Función iniciar_pedido:
+Función iniciar_pedido (Generada parcialmente con IA):
 Inserta en Pedido, crea un savepoint para poder deshacer los detalles. No hace commit
 """
 def iniciar_pedido(conn: pyodbc.Connection, cpedido: int, ccliente: int, fecha_str: Optional[str] = None) -> int:
@@ -77,7 +76,7 @@ def iniciar_pedido(conn: pyodbc.Connection, cpedido: int, ccliente: int, fecha_s
 
 
 """
-Función añadir_detalle:
+Función añadir_detalle (Generada parcialmente con IA):
 Añade un detalle al pedido.
 Primero comprueba que existe, comprueba el producto y su stock
 Inserta en Detalle_Pedido y acutaliza Stock, restando la cantidad
@@ -134,7 +133,7 @@ def anadir_detalle(conn: pyodbc.Connection, cpedido: int, cproducto: int,cantida
         )
 
 """
-Función eliminar_detalles_pedido:
+Función eliminar_detalles_pedido (Generada parcialmente con IA):
 Hace rollback sp_pedido_creado, deshace detalles y cambios en el Stock, pero mantiene el pedido en si
 Vuelve a crear el savepoint para seguir trabajando
 No hace commit

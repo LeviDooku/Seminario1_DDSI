@@ -3,7 +3,10 @@
 """
 Crea la infraestructura física de la base de datos usada por la aplicación.
 (Punto 1 del seminario)
-Nota: se puede consultar crear_bd.sql 
+
+https://github.com/mkleehammer/pyodbc/wiki
+
+Nota: se puede consultar crear_bd.sql
 """
 
 from __future__ import annotations
