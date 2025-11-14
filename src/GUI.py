@@ -7,7 +7,46 @@ import io
 
 from schema import resetea          # opción 1 del menú
 from mostrar import mostrar_todo    # opción 3 del menú
-from pedidos_service import iniciar_pedido, PedidoYaExisteError, anadir_detalle, SinStockError, ProductoNoExisteError, PedidoError, eliminar_detalles_pedido, cancelar_pedido# opción 2 del menú
+from pedidos_service import iniciar_pedido, PedidoYaExisteError, anadir_detalle, SinStockError, ProductoNoExisteError, PedidoError, eliminar_detalles_pedido, cancelar_pedido, finalizar_pedido # opción 2 del menú
+
+# ---------- boton de finalizar pedido ----------
+
+def boton_finalizar_pedido(ventana_menu_pedido, ventana_alta, conn, cpedido):
+    try:
+        # Commit de todos los cambios
+        finalizar_pedido(conn)  # función de pedidos_service que hace conn.commit()
+
+        # Mensaje de éxito
+        ventana_msg = tk.Toplevel()
+        ventana_msg.title("Pedido finalizado")
+        ventana_msg.geometry("400x150")
+        ventana_msg.config(bg="#f0f0f0")
+
+        tk.Label(
+            ventana_msg,
+            text=f"El pedido {cpedido} ha sido finalizado correctamente.",
+            font=("Arial", 12),
+            wraplength=350,
+            justify="center",
+            bg="#f0f0f0"
+        ).pack(pady=20)
+
+        tk.Button(
+            ventana_msg,
+            text="Cerrar",
+            font=("Arial", 12, "bold"),
+            bg="#5cb85c",
+            fg="white",
+            command=ventana_msg.destroy
+        ).pack(pady=10)
+
+        # Cerrar ventanas intermedias
+        ventana_menu_pedido.destroy()
+        ventana_alta.destroy()
+
+    except Exception as e:
+        mostrar_error_gui(ventana_menu_pedido, f"No se pudo finalizar el pedido:\n{e}")
+
 
 # ---------- boton de cancelar el pedido --------
 
@@ -159,8 +198,8 @@ def mostrar_menu_pedido(ventana_padre, conn, cpedido):
     opciones = [
         ("Añadir detalle de producto",lambda: boton_anadir_detalles_pedido(ventana_pedido, conn, cpedido)), 
         ("Eliminar todos los detalles del producto", lambda: eliminar_detalles_gui(ventana_pedido, conn, cpedido)),
-        ("Cancelar pedido",None),
-        ("Finalizar pedido",None)
+        ("Cancelar pedido", lambda: boton_cancelar_pedido(ventana_pedido, ventana_padre, conn, cpedido)),
+        ("Finalizar pedido", lambda: boton_finalizar_pedido(ventana_pedido, ventana_padre, conn, cpedido))
     ]
 
     # De momento los botones no tienen lógica de BD.
