@@ -1,9 +1,16 @@
+# GUI
+
 import tkinter as tk
 from tkinter import ttk
+import sys
+import io
 
+from schema import resetea          # opción 1 del menú
+from mostrar import mostrar_todo    # opción 3 del menú
+from pedidos_service import iniciar_pedido, PedidoYaExisteError     # opción 2 del menú
 
 # ---------- Ventana 3: menú de acciones del pedido ----------
-def mostrar_menu_pedido(ventana_padre):
+def mostrar_menu_pedido(ventana_padre, conn):
     ventana_pedido = tk.Toplevel(ventana_padre)
     ventana_pedido.title("Gestión del pedido")
     ventana_pedido.geometry("800x500")  # Ventana más grande
@@ -28,20 +35,21 @@ def mostrar_menu_pedido(ventana_padre):
         "Finalizar pedido"
     ]
 
-    # Crear botones en 2x2
+    # De momento los botones no tienen lógica de BD.
+    # Más adelante los conectaremos con pedidos_service.py
     for i, texto in enumerate(opciones):
         boton = tk.Button(
             frame_botones,
             text=texto,
             font=("Arial", 15),
-            wraplength=250,      # Permite que el texto se divida en varias líneas
-            justify="center",    # Centra el texto en el botón
+            wraplength=250,
+            justify="center",
             width=25,
             height=4,
             bg="#e0e0e0",
             cursor="hand2"
         )
-        boton.grid(row=i // 2, column=i % 2, padx=40, pady=25)  # Más espacio entre botones
+        boton.grid(row=i // 2, column=i % 2, padx=40, pady=25)
 
     # Botón de salida
     boton_salir = tk.Button(
@@ -55,9 +63,66 @@ def mostrar_menu_pedido(ventana_padre):
     )
     boton_salir.pack(pady=20, side="bottom")
 
+# ---------- Botón de insertar datos en pedido y función para mostrar el error aparte ----------
+
+def insertar_pedido_externo(conn, ventana, cpedido, ccliente, fecha_str):
+
+    try:
+        # Intentar crear el pedido
+        iniciar_pedido(conn, cpedido, ccliente, fecha_str)
+        # Mostrar menú de gestión del pedido
+        mostrar_menu_pedido(ventana, conn)
+
+    except PedidoYaExisteError as e:
+        mostrar_error_gui(ventana, str(e))
+
+    except Exception as e:
+        mostrar_error_gui(ventana, f"No se pudo crear el pedido:\n{e}")
+
+def mostrar_error_gui(ventana_padre, mensaje):
+    # Crea una ventana nueva para mostrar el error
+    ventana_error = tk.Toplevel(ventana_padre)
+    ventana_error.title("Error")
+    ventana_error.geometry("500x200")
+    ventana_error.config(bg="#f8d7da")
+
+    label = tk.Label(
+        ventana_error,
+        text="Se produjo un error:",
+        font=("Arial", 14, "bold"),
+        bg="#f8d7da",
+        fg="#721c24"
+    )
+    label.pack(pady=10)
+
+    text = tk.Text(
+        ventana_error,
+        font=("Arial", 12),
+        height=5,
+        width=50,
+        wrap="word",
+        bg="#f5c6cb",
+        fg="#721c24"
+    )
+    text.pack(padx=10, pady=10)
+    text.insert("1.0", mensaje)
+    text.config(state="disabled")  # Hacer que el texto no sea editable
+
+    boton_cerrar = tk.Button(
+        ventana_error,
+        text="Cerrar",
+        font=("Arial", 12, "bold"),
+        bg="#d9534f",
+        fg="white",
+        cursor="hand2",
+        command=ventana_error.destroy
+    )
+    boton_cerrar.pack(pady=10)
+
+
 
 # ---------- Ventana 2: formulario de alta de pedido ----------
-def mostrar_formulario_alta(ventana_padre):
+def mostrar_formulario_alta(ventana_padre, conn):
     ventana_alta = tk.Toplevel(ventana_padre)
     ventana_alta.title("Dar de alta nuevo pedido")
     ventana_alta.geometry("600x350")
@@ -84,7 +149,7 @@ def mostrar_formulario_alta(ventana_padre):
         entrada.grid(row=i, column=1, padx=10, pady=10)
         entradas[campo] = entrada
 
-    # Botón insertar
+    # Botón insertar:
     boton_insertar = tk.Button(
         frame_form,
         text="Insertar",
@@ -92,7 +157,13 @@ def mostrar_formulario_alta(ventana_padre):
         bg="#5cb85c",
         fg="white",
         cursor="hand2",
-        command=lambda: mostrar_menu_pedido(ventana_alta)
+        command=lambda: insertar_pedido_externo(
+            conn,
+            ventana_alta,
+            int(entradas["Código pedido"].get()),
+            int(entradas["Código cliente"].get()),
+            entradas["Fecha pedido"].get().strip() or None
+        )
     )
     boton_insertar.grid(row=1, column=2, padx=30, pady=10)
 
@@ -108,8 +179,52 @@ def mostrar_formulario_alta(ventana_padre):
     boton_salir.pack(pady=20, side="bottom")
 
 
+# ---------- Botón de borrado y creación de nuevas tablas ----------
+
+def boton_borrado_y_creacion_tablas(conn):
+    # Ejecuta resetea
+    resetea(conn)
+
+    # Ventana de mensajes
+    ventana_msg = tk.Toplevel()
+    ventana_msg.title("Progreso")
+    ventana_msg.geometry("400x200")
+    ventana_msg.config(bg="#f0f0f0")
+
+    cuadro_texto = tk.Text(ventana_msg, font=("Arial", 12), width=45, height=5)
+    cuadro_texto.pack(padx=20, pady=20)
+    cuadro_texto.insert(tk.END, "Tablas borradas exitosamente\n")
+    cuadro_texto.update()
+
+    # Mostrar mensaje tras 3 segundos
+    def mostrar_segundo_mensaje():
+        cuadro_texto.insert(tk.END, "Creación de nueva tabla STOCK completada\n")
+        cuadro_texto.update()
+
+    ventana_msg.after(1000, mostrar_segundo_mensaje)
+    
+# ---------- Botón de mostrar tablas ----------
+
+def boton_mostrar_tablas(conn):
+    ventana_tablas = tk.Toplevel()
+    ventana_tablas.title("Contenido de las tablas")
+    ventana_tablas.geometry("600x400")
+    ventana_tablas.config(bg="#f0f0f0")
+
+    cuadro_texto = tk.Text(ventana_tablas, font=("Arial", 12), width=70, height=20)
+    cuadro_texto.pack(padx=20, pady=20)
+
+    # Redirigir la salida de mostrar_todo al cuadro de texto
+    buffer = io.StringIO()
+    sys.stdout = buffer
+    mostrar_todo(conn)
+    sys.stdout = sys.__stdout__
+
+    cuadro_texto.insert(tk.END, buffer.getvalue())
+
+
 # ---------- Ventana 1: menú principal ----------
-def iniciar_gui():
+def iniciar_gui(conn):
     ventana = tk.Tk()
     ventana.title("Menú principal")
     ventana.geometry("900x500")
@@ -129,9 +244,14 @@ def iniciar_gui():
     titulo.grid(row=0, column=0, columnspan=3, pady=(40, 30))
 
     botones = [
-        ("Borrado y creación de nuevas tablas", None),
-        ("Dar de alta nuevo pedido", lambda: mostrar_formulario_alta(ventana)),
-        ("Mostrar tablas", None)
+        # Opción 1: Borrado y creación de nuevas tablas
+        ("Borrado y creación de nuevas tablas", lambda: boton_borrado_y_creacion_tablas(conn)),
+
+        # Opción 2: Dar de alta nuevo pedido (abre formulario)
+        ("Dar de alta nuevo pedido", lambda: mostrar_formulario_alta(ventana, conn)),
+
+        # Opción 3: Mostrar tablas
+        ("Mostrar tablas", lambda: boton_mostrar_tablas(conn)),
     ]
 
     for i, (texto, comando) in enumerate(botones):
