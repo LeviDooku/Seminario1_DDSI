@@ -7,10 +7,95 @@ import io
 
 from schema import resetea          # opción 1 del menú
 from mostrar import mostrar_todo    # opción 3 del menú
-from pedidos_service import iniciar_pedido, PedidoYaExisteError, anadir_detalle, SinStockError, ProductoNoExisteError, PedidoError    # opción 2 del menú
+from pedidos_service import iniciar_pedido, PedidoYaExisteError, anadir_detalle, SinStockError, ProductoNoExisteError, PedidoError, eliminar_detalles_pedido# opción 2 del menú
+
+# ---------- boton de eliminar todos los detalles del producto ----------
+
+def eliminar_detalles_gui(ventana_padre, conn):
+    try:
+        eliminar_detalles_pedido(conn)
+        # Mostrar mensaje de éxito
+        ventana_msg = tk.Toplevel(ventana_padre)
+        ventana_msg.title("Éxito")
+        ventana_msg.geometry("400x150")
+        ventana_msg.config(bg="#f0f0f0")
+
+        tk.Label(
+            ventana_msg,
+            text="Todos los detalles del pedido han sido eliminados correctamente.",
+            font=("Arial", 12),
+            wraplength=350,
+            justify="center",
+            bg="#f0f0f0"
+        ).pack(pady=20)
+
+        tk.Button(
+            ventana_msg,
+            text="Cerrar",
+            font=("Arial", 12, "bold"),
+            bg="#5cb85c",
+            fg="white",
+            command=ventana_msg.destroy
+        ).pack(pady=10)
+
+    except Exception as e:
+        mostrar_error_gui(ventana_padre, str(e))
+
+
+# ---------- boton de añadir detalle de producto ----------
+
+def boton_anadir_detalles_pedido(ventana_padre, conn, cpedido):
+    ventana_detalle = tk.Toplevel(ventana_padre)
+    ventana_detalle.title("Añadir detalle")
+    ventana_detalle.geometry("400x250")
+    ventana_detalle.config(bg="#f0f0f0")
+
+    tk.Label(ventana_detalle, text="Código producto:", font=("Arial", 12), bg="#f0f0f0").pack(pady=5)
+    entry_prod = tk.Entry(ventana_detalle, font=("Arial", 12))
+    entry_prod.pack(pady=5)
+
+    tk.Label(ventana_detalle, text="Cantidad:", font=("Arial", 12), bg="#f0f0f0").pack(pady=5)
+    entry_cant = tk.Entry(ventana_detalle, font=("Arial", 12))
+    entry_cant.pack(pady=5)
+
+    def insertar_detalle():
+        try:
+            cproducto = int(entry_prod.get())
+            cantidad = int(entry_cant.get())
+            anadir_detalle(conn, cpedido, cproducto, cantidad)
+
+            # Mensaje de éxito
+            ok = tk.Toplevel(ventana_detalle)
+            ok.title("Éxito")
+            tk.Label(ok, text="Detalle insertado correctamente.", font=("Arial", 12)).pack(pady=15)
+            tk.Button(ok, text="Cerrar", command=ok.destroy).pack(pady=10)
+
+            ventana_detalle.destroy()
+
+        except Exception as e:
+            mostrar_error_gui(ventana_detalle, str(e))
+
+    tk.Button(
+        ventana_detalle,
+        text="Insertar detalle",
+        font=("Arial", 12, "bold"),
+        bg="#5cb85c",
+        fg="white",
+        command=insertar_detalle
+    ).pack(pady=15)
+
+    tk.Button(
+        ventana_detalle,
+        text="Cancelar",
+        font=("Arial", 12),
+        bg="#d9534f",
+        fg="white",
+        command=ventana_detalle.destroy
+    ).pack(pady=5)
+
 
 # ---------- Ventana 3: menú de acciones del pedido ----------
-def mostrar_menu_pedido(ventana_padre, conn):
+def mostrar_menu_pedido(ventana_padre, conn, cpedido):
     ventana_pedido = tk.Toplevel(ventana_padre)
     ventana_pedido.title("Gestión del pedido")
     ventana_pedido.geometry("800x500")  # Ventana más grande
@@ -29,15 +114,15 @@ def mostrar_menu_pedido(ventana_padre, conn):
     frame_botones.pack(pady=20)
 
     opciones = [
-        "Añadir detalle de producto", 
-        "Eliminar todos los detalles del producto",
-        "Cancelar pedido",
-        "Finalizar pedido"
+        ("Añadir detalle de producto",lambda: boton_anadir_detalles_pedido(ventana_pedido, conn, cpedido)), 
+        ("Eliminar todos los detalles del producto", lambda: eliminar_detalles_gui(ventana_pedido, conn)),
+        ("Cancelar pedido",None),
+        ("Finalizar pedido",None)
     ]
 
     # De momento los botones no tienen lógica de BD.
     # Más adelante los conectaremos con pedidos_service.py
-    for i, texto in enumerate(opciones):
+    for i, (texto, comando) in enumerate(opciones):
         boton = tk.Button(
             frame_botones,
             text=texto,
@@ -48,6 +133,7 @@ def mostrar_menu_pedido(ventana_padre, conn):
             height=4,
             bg="#e0e0e0",
             cursor="hand2",
+            command=comando if comando is not None else lambda: None
         )
         boton.grid(row=i // 2, column=i % 2, padx=40, pady=25)
 
@@ -73,7 +159,7 @@ def boton_insertar_pedido_externo(conn, ventana, cpedido, ccliente, fecha_str):
         # Guardamos el código del pedido como atributo de la ventana
         ventana.cpedido = cpedido
         # Mostrar menú de gestión del pedido
-        mostrar_menu_pedido(ventana, conn)
+        mostrar_menu_pedido(ventana, conn, cpedido)
 
     except PedidoYaExisteError as e:
         mostrar_error_gui(ventana, str(e))
