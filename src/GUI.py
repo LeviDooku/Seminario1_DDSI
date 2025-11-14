@@ -7,7 +7,7 @@ import io
 
 from schema import resetea          # opción 1 del menú
 from mostrar import mostrar_todo    # opción 3 del menú
-from pedidos_service import iniciar_pedido, PedidoYaExisteError     # opción 2 del menú
+from pedidos_service import iniciar_pedido, PedidoYaExisteError, anadir_detalle, SinStockError, ProductoNoExisteError, PedidoError    # opción 2 del menú
 
 # ---------- Ventana 3: menú de acciones del pedido ----------
 def mostrar_menu_pedido(ventana_padre, conn):
@@ -29,7 +29,7 @@ def mostrar_menu_pedido(ventana_padre, conn):
     frame_botones.pack(pady=20)
 
     opciones = [
-        "Añadir detalle de producto",
+        "Añadir detalle de producto", 
         "Eliminar todos los detalles del producto",
         "Cancelar pedido",
         "Finalizar pedido"
@@ -47,7 +47,7 @@ def mostrar_menu_pedido(ventana_padre, conn):
             width=25,
             height=4,
             bg="#e0e0e0",
-            cursor="hand2"
+            cursor="hand2",
         )
         boton.grid(row=i // 2, column=i % 2, padx=40, pady=25)
 
@@ -65,11 +65,13 @@ def mostrar_menu_pedido(ventana_padre, conn):
 
 # ---------- Botón de insertar datos en pedido y función para mostrar el error aparte ----------
 
-def insertar_pedido_externo(conn, ventana, cpedido, ccliente, fecha_str):
+def boton_insertar_pedido_externo(conn, ventana, cpedido, ccliente, fecha_str):
 
     try:
         # Intentar crear el pedido
         iniciar_pedido(conn, cpedido, ccliente, fecha_str)
+        # Guardamos el código del pedido como atributo de la ventana
+        ventana.cpedido = cpedido
         # Mostrar menú de gestión del pedido
         mostrar_menu_pedido(ventana, conn)
 
@@ -157,7 +159,7 @@ def mostrar_formulario_alta(ventana_padre, conn):
         bg="#5cb85c",
         fg="white",
         cursor="hand2",
-        command=lambda: insertar_pedido_externo(
+        command=lambda: boton_insertar_pedido_externo(
             conn,
             ventana_alta,
             int(entradas["Código pedido"].get()),
