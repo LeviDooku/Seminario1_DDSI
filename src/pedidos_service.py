@@ -138,19 +138,46 @@ Hace rollback sp_pedido_creado, deshace detalles y cambios en el Stock, pero man
 Vuelve a crear el savepoint para seguir trabajando
 No hace commit
 """
-def eliminar_detalles_pedido(conn: pyodbc.Connection) -> None:
+def eliminar_detalles_pedido(conn: pyodbc.Connection, cpedido: int) -> None:
     with conn.cursor() as cur:
-        try:
-            #Deshacer todo lo ocurrido después de crear el pedido
-            conn.execute(f"ROLLBACK TO {SAVEPOINT_NAME}")
-        except pyodbc.Error as e:
+        #Comprobar que existe el pedido
+        cur.execute("SELECT 1 FROM PEDIDO WHERE CPEDIDO = ?", (cpedido,))
+        if cur.fetchone() is None:
             raise PedidoError(
-                "No se ha podido hacer ROLLBACK TO SAVEPOINT. "
-                "¿Se ha iniciado ya el pedido?"
-            ) from e
+                f"No existe el pedido {cpedido}. ¿Se ha iniciado correctamente?"
+            )
 
-        #Crear de nuevo el savepoint en el estado "solo pedido"
-        conn.execute(f"SAVEPOINT {SAVEPOINT_NAME}")
+        #Obtener todos los detalles del pedido
+        cur.execute(
+            """
+            SELECT CPRODUCTO, CANTIDAD
+            FROM DETALLE_PEDIDO
+            WHERE CPEDIDO = ?
+            """,
+            (cpedido,),
+        )
+        detalles = cur.fetchall()
+
+        if not detalles:
+            #No hay detalles que eliminar; no hacemos nada
+            return
+
+        #Devolver stock para cada detalle
+        for cproducto, cantidad in detalles:
+            cur.execute(
+                """
+                UPDATE STOCK
+                SET CANTIDAD = CANTIDAD + ?
+                WHERE CPRODUCTO = ?
+                """,
+                (cantidad, cproducto),
+            )
+
+        #Borrar todos los detalles del pedido
+        cur.execute(
+            "DELETE FROM DETALLE_PEDIDO WHERE CPEDIDO = ?",
+            (cpedido,),
+        )
 
 """
 Función cancelar_pedido:
