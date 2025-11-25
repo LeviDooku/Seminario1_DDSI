@@ -13,20 +13,6 @@ from GUI import iniciar_gui
 import pyodbc
 import sys
 
-"""
-# main
-
-from GUI import iniciar_gui
-
-def main():
-    print("Iniciando aplicación...")
-    iniciar_gui()
-
-if __name__ == "__main__":
-    main()
-"""
-
-
 def main():
     try:
         cfg = from_env()
